@@ -465,6 +465,13 @@ function isSchemaAlreadyApplied(
       // exists the rebuild ran — skip re-executing the rename/copy/drop, which
       // would fail on the missing proxy_assignments_pre117 table.
       return hasColumn(db, "proxy_assignments", "position");
+    case "136":
+      // Retired-provider purge was renumbered from 135 after that slot was claimed
+      // upstream. Existing PR checkouts may already have applied the SQL at 135.
+      return (
+        hasTable(db, "retired_provider_purge_queue") &&
+        hasTable(db, "retired_provider_purge_artifacts")
+      );
     default:
       return false;
   }
