@@ -446,14 +446,6 @@
       "count": 1
     }
   },
-  "src/sse/services/auth.ts": {
-    "no-restricted-syntax": {
-      "count": 1
-    },
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "tests/e2e/api.spec.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 3
@@ -3353,11 +3345,6 @@
     }
   },
   "src/sse/handlers/autoRouting.ts": {
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/sse/handlers/chat.ts": {
     "no-restricted-imports": {
       "count": 1
     }
