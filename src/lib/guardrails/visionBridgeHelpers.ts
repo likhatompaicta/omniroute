@@ -360,6 +360,7 @@ async function callVisionModelSingle(
         headers,
         body: JSON.stringify({
           model: requestModel,
+          stream: false,
           messages: [
             {
               role: "user",
