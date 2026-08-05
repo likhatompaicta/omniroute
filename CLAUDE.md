@@ -35,7 +35,7 @@ For full test matrix, see `CONTRIBUTING.md` → "Running Tests". For deep archit
 
 ## Project at a Glance
 
-**OmniRoute** — unified AI proxy/router. One endpoint, 290 LLM providers, auto-fallback.
+**OmniRoute** — unified AI proxy/router. One endpoint, 329 AI providers, auto-fallback.
 
 | Layer         | Location                | Purpose                                                                                                                                                 |
 | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,9 +45,9 @@ For full test matrix, see `CONTRIBUTING.md` → "Running Tests". For deep archit
 | Translators   | `open-sse/translator/`  | Format conversion (OpenAI↔Claude↔Gemini)                                                                                                                |
 | Transformer   | `open-sse/transformer/` | Responses API ↔ Chat Completions                                                                                                                        |
 | Services      | `open-sse/services/`    | Combo routing, rate limits, caching, etc                                                                                                                |
-| Database      | `src/lib/db/`           | SQLite domain modules (130 migrations)                                                                                                                  |
+| Database      | `src/lib/db/`           | SQLite domain modules (131 migrations)                                                                                                                  |
 | Domain/Policy | `src/domain/`           | Policy engine, cost rules, fallback logic                                                                                                               |
-| MCP Server    | `open-sse/mcp-server/`  | 104 tools (42 base + memory/skill/agentSkill/pool/notion/obsidian/gamification/plugin modules), 3 transports (stdio / SSE / Streamable HTTP), 31 scopes |
+| MCP Server    | `open-sse/mcp-server/`  | 107 tools (42 base + memory/skill/agentSkill/pool/notion/obsidian/gamification/plugin modules), 3 transports (stdio / SSE / Streamable HTTP), 32 scopes |
 | A2A Server    | `src/lib/a2a/`          | JSON-RPC 2.0 agent protocol                                                                                                                             |
 | Skills        | `src/lib/skills/`       | Extensible skill framework                                                                                                                              |
 | Memory        | `src/lib/memory/`       | Persistent conversational memory                                                                                                                        |
