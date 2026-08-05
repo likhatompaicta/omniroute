@@ -1,5 +1,7 @@
 export type KiroSocialPollData = {
   error?: unknown;
+  pending?: unknown;
+  status?: unknown;
   accessToken?: unknown;
   refreshToken?: unknown;
 };
@@ -24,19 +26,26 @@ function errorCode(value: unknown): string {
 export function classifyKiroSocialPoll(
   responseOk: boolean,
   responseStatus: number,
-  data: KiroSocialPollData
+  data: KiroSocialPollData | null | undefined
 ): KiroSocialPollOutcome {
-  if (data.error === "authorization_pending" || data.error === "slow_down") {
-    return { kind: "pending", error: data.error };
+  const pollData = data && typeof data === "object" ? data : {};
+
+  if (pollData.error === "authorization_pending" || pollData.error === "slow_down") {
+    return { kind: "pending", error: pollData.error };
   }
 
-  if (!responseOk || data.error) {
+  if (pollData.pending === true || pollData.status === "pending") {
+    return { kind: "pending", error: "authorization_pending" };
+  }
+
+  if (!responseOk || pollData.error) {
     const status = responseStatus >= 400 && responseStatus <= 599 ? responseStatus : 400;
-    return { kind: "error", error: errorCode(data.error), status };
+    return { kind: "error", error: errorCode(pollData.error), status };
   }
 
-  if (!data.accessToken && !data.refreshToken) {
-    return { kind: "error", error: "invalid_token_response", status: 502 };
+  // === CHANGE: keep empty successful polls pending while social authorization is unfinished ===
+  if (!pollData.accessToken && !pollData.refreshToken) {
+    return { kind: "pending", error: "authorization_pending" };
   }
 
   return { kind: "success" };

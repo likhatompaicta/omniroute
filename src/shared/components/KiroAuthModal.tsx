@@ -102,6 +102,8 @@ export default function KiroAuthModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          // === CHANGE: preserve the dashboard session during manual Kiro imports ===
+          credentials: "same-origin",
           body: JSON.stringify({
             refreshToken: refreshToken.trim(),
           }),

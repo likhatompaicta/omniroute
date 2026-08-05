@@ -45,6 +45,8 @@ const { GET } = await import("../../src/app/api/oauth/kiro/auto-import/route.ts"
 const { KiroService } = await import("../../src/lib/oauth/services/kiro.ts");
 
 const ORIGINAL_HOME = process.env.HOME;
+// === CHANGE: isolate the Windows home directory used by os.homedir() ===
+const ORIGINAL_USERPROFILE = process.env.USERPROFILE;
 const ORIGINAL_APPDATA = process.env.APPDATA;
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -56,12 +58,14 @@ test.beforeEach(() => {
   fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
   fs.mkdirSync(TEST_DATA_DIR, { recursive: true });
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
   delete process.env.APPDATA;
   globalThis.fetch = ORIGINAL_FETCH;
 });
 
 test.afterEach(() => {
   process.env.HOME = ORIGINAL_HOME;
+  process.env.USERPROFILE = ORIGINAL_USERPROFILE;
   if (ORIGINAL_APPDATA !== undefined) {
     process.env.APPDATA = ORIGINAL_APPDATA;
   } else {
@@ -142,7 +146,11 @@ test("auto-import: resolves clientId/clientSecret from a direct `clientId` field
       assert.equal(parsed.clientId, "correct-client-id");
       assert.equal(parsed.clientSecret, "correct-secret");
       return new Response(
-        JSON.stringify({ accessToken: "access-refreshed", refreshToken: "aorAAAAAGrefreshed", expiresIn: 3600 }),
+        JSON.stringify({
+          accessToken: "access-refreshed",
+          refreshToken: "aorAAAAAGrefreshed",
+          expiresIn: 3600,
+        }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -185,7 +193,11 @@ test("KiroService.validateImportToken: prefers the client registration matching 
       fetchedBodies.push(parsed);
       if (parsed.clientId === "correct-client-id" && parsed.clientSecret === "correct-secret") {
         return new Response(
-          JSON.stringify({ accessToken: "ok-access", refreshToken: "aorAAAAAGok", expiresIn: 3600 }),
+          JSON.stringify({
+            accessToken: "ok-access",
+            refreshToken: "aorAAAAAGok",
+            expiresIn: 3600,
+          }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
