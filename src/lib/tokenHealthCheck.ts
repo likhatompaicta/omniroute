@@ -27,7 +27,11 @@ import {
 } from "@omniroute/open-sse/services/tokenRefresh.ts";
 import { pickMaskedDisplayValue } from "@/shared/utils/maskEmail";
 import { isAutomatedTestProcess } from "@/shared/utils/testProcess";
-import { refreshGithubCopilotSubTokenIfNeeded } from "@/lib/tokenHealthCheckCopilot";
+import {
+  refreshGithubCopilotSubTokenIfNeeded,
+  getCopilotTokenBaseUrl,
+  buildAccessTokenOnlySweepUpdate,
+} from "@/lib/tokenHealthCheckCopilot";
 
 const LOG_PREFIX = "[HealthCheck]";
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -83,17 +87,9 @@ function getCopilotTokenExpiryMs(expiresAt: unknown): number {
 
 function isGitHubAccessTokenOnlyConnection(conn: any): boolean {
   return (
-    String(conn?.provider || "").toLowerCase() === "github" &&
+    ["github", "ghe-copilot"].includes(String(conn?.provider || "").toLowerCase()) &&
     typeof conn?.accessToken === "string" &&
     conn.accessToken.trim().length > 0
-  );
-}
-
-function canClearGitHubNoRefreshTokenState(conn: any): boolean {
-  return (
-    !conn?.testStatus ||
-    conn.testStatus === "active" ||
-    (conn.testStatus === "expired" && conn.errorCode === "no_refresh_token")
   );
 }
 
@@ -564,7 +560,8 @@ export async function checkConnection(conn) {
         const copilotResult = await refreshCopilotToken(
           conn.accessToken,
           healthCheckLog,
-          proxyConfig
+          proxyConfig,
+          getCopilotTokenBaseUrl(conn)
         );
         if (copilotResult?.token) {
           refreshedProviderSpecificData = {
@@ -575,38 +572,21 @@ export async function checkConnection(conn) {
         }
       }
 
-      if (canClearGitHubNoRefreshTokenState(conn)) {
-        await updateProviderConnection(conn.id, {
-          lastHealthCheckAt: now,
-          testStatus: "active",
-          lastError:
-            copilotAboutToExpire && !refreshedProviderSpecificData
-              ? "Health check: Copilot token refresh failed"
-              : null,
-          lastErrorAt: copilotAboutToExpire && !refreshedProviderSpecificData ? now : null,
-          lastErrorType:
-            copilotAboutToExpire && !refreshedProviderSpecificData ? "token_refresh_failed" : null,
-          lastErrorSource: copilotAboutToExpire && !refreshedProviderSpecificData ? "oauth" : null,
-          errorCode:
-            copilotAboutToExpire && !refreshedProviderSpecificData ? "refresh_failed" : null,
-          expiredRetryCount: null,
-          expiredRetryAt: null,
-          ...(refreshedProviderSpecificData
-            ? { providerSpecificData: refreshedProviderSpecificData }
-            : {}),
-        });
-      } else {
-        await updateProviderConnection(conn.id, {
-          lastHealthCheckAt: now,
-          ...(refreshedProviderSpecificData
-            ? { providerSpecificData: refreshedProviderSpecificData }
-            : {}),
-        });
-      }
-
-      log(
-        `${LOG_PREFIX} ${conn.provider}/${getConnectionLogLabel(conn)} has no refresh token but has a GitHub access token; keeping connection active`
+      await updateProviderConnection(
+        conn.id,
+        buildAccessTokenOnlySweepUpdate(
+          conn,
+          now,
+          copilotAboutToExpire,
+          refreshedProviderSpecificData
+        )
       );
+
+      // Log only on an actual refresh attempt (avoids ~1440 no-op lines/day/connection).
+      if (copilotAboutToExpire) {
+        const status = refreshedProviderSpecificData ? "refreshed" : "refresh FAILED";
+        log(`${LOG_PREFIX} ${conn.provider}/${getConnectionLogLabel(conn)} Copilot ${status}`);
+      }
       return;
     }
 
