@@ -125,6 +125,65 @@ describe("KiroAuthModal", () => {
     }
   });
 
+  // === CHANGE: verify the dashboard manual import posts the token with the session ===
+  it("imports a refresh token through the Kiro endpoint with same-origin credentials", async () => {
+    const { default: KiroAuthModal } = await import("@/shared/components/KiroAuthModal");
+    const container = makeContainer();
+    const root = createRoot(container);
+    const calls: string[] = [];
+    const onMethodSelect = vi.fn(() => calls.push("select"));
+    const onClose = vi.fn(() => calls.push("close"));
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ success: true, connection: { id: "kiro-conn-1" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      await act(async () => {
+        root.render(
+          withIntl(<KiroAuthModal isOpen onClose={onClose} onMethodSelect={onMethodSelect} />)
+        );
+      });
+
+      const importButton = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.querySelector("h3")?.textContent === "Import Token"
+      );
+      await act(async () => {
+        importButton?.click();
+      });
+
+      const refreshInput = container.querySelector("input") as HTMLInputElement;
+      await act(async () => {
+        setInputValue(refreshInput, "synthetic-kiro-refresh-token");
+      });
+
+      const importSubmit = Array.from(container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("Import Token")
+      );
+      await act(async () => {
+        importSubmit?.click();
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/oauth/kiro/import?targetProvider=kiro",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "same-origin",
+          body: JSON.stringify({ refreshToken: "synthetic-kiro-refresh-token" }),
+        })
+      );
+      expect(onMethodSelect).toHaveBeenCalledWith("import");
+      expect(calls).toEqual(["select", "close"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("treats successful auto-import as completed instead of importing twice", async () => {
     const { default: KiroAuthModal } = await import("@/shared/components/KiroAuthModal");
     const container = makeContainer();

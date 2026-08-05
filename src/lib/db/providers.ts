@@ -119,7 +119,7 @@ export async function getProviderConnections(
   filter: JsonRecord = {},
   limit?: number,
   offset?: number,
-  columns?: string[],
+  columns?: string[]
 ) {
   const useCache = !columns?.length && limit === undefined && offset === undefined;
   const raw = useCache
@@ -145,7 +145,7 @@ export async function getRawProviderConnections(
   filter: JsonRecord = {},
   limit?: number,
   offset?: number,
-  columns?: string[],
+  columns?: string[]
 ) {
   const db = getDbInstance() as unknown as DbLike;
   let selectCols = "*";
@@ -176,8 +176,6 @@ export async function getRawProviderConnections(
     conditions.push("auth_type = @authType");
     params.authType = filter.authType;
   }
-
-
 
   if (conditions.length > 0) {
     sql += " WHERE " + conditions.join(" AND ");
@@ -282,9 +280,18 @@ function findExistingCookieConnection(
   return null;
 }
 
-export async function createProviderConnection(data: JsonRecord) {
+// === CHANGE: expose explicit persistence control for append-only imports ===
+export type CreateProviderConnectionOptions = {
+  deduplicate?: boolean;
+};
+
+export async function createProviderConnection(
+  data: JsonRecord,
+  options: CreateProviderConnectionOptions = {}
+) {
   const db = getDbInstance() as unknown as DbLike;
   const now = new Date().toISOString();
+  const shouldDeduplicate = options.deduplicate !== false;
   const normalizedProviderSpecificData = normalizeProviderSpecificData(
     toStringOrNull(data.provider),
     data.providerSpecificData
@@ -297,7 +304,12 @@ export async function createProviderConnection(data: JsonRecord) {
   const workspaceId = toStringOrNull(providerSpecificData.workspaceId);
   const chatgptUserId = toStringOrNull(providerSpecificData.chatgptUserId);
 
-  if (data.authType === "oauth" && data.provider === "codex" && chatgptUserId) {
+  if (
+    shouldDeduplicate &&
+    data.authType === "oauth" &&
+    data.provider === "codex" &&
+    chatgptUserId
+  ) {
     const strongSql = workspaceId
       ? "SELECT * FROM provider_connections WHERE provider = ? AND auth_type = 'oauth' AND json_extract(provider_specific_data, '$.workspaceId') = ? AND json_extract(provider_specific_data, '$.chatgptUserId') = ?"
       : "SELECT * FROM provider_connections WHERE provider = ? AND auth_type = 'oauth' AND (json_extract(provider_specific_data, '$.workspaceId') IS NULL OR json_extract(provider_specific_data, '$.workspaceId') = '') AND json_extract(provider_specific_data, '$.chatgptUserId') = ?";
@@ -323,7 +335,7 @@ export async function createProviderConnection(data: JsonRecord) {
       );
       promotedCodexIdentity = existing !== null;
     }
-  } else if (data.authType === "oauth" && data.email) {
+  } else if (shouldDeduplicate && data.authType === "oauth" && data.email) {
     if (data.provider === "codex") {
       if (workspaceId) {
         existing =
@@ -364,7 +376,7 @@ export async function createProviderConnection(data: JsonRecord) {
           return true;
         }) || null;
     }
-  } else if (data.authType === "apikey") {
+  } else if (shouldDeduplicate && data.authType === "apikey") {
     // Name-based upsert (existing behavior): same provider + same name → update.
     if (data.name) {
       existing =
@@ -392,7 +404,7 @@ export async function createProviderConnection(data: JsonRecord) {
         }
       }
     }
-  } else if (data.authType === "cookie") {
+  } else if (shouldDeduplicate && data.authType === "cookie") {
     existing = findExistingCookieConnection(
       db,
       data.provider,
@@ -1005,10 +1017,7 @@ export async function getDistinctGroups(): Promise<string[]> {
   return rows.map((r) => String(r.group ?? "")).filter(Boolean);
 }
 
-export {
-  autoMigrateLegacyEncryptedConnections,
-  getGheCopilotHosts,
-} from "./providers/migrations";
+export { autoMigrateLegacyEncryptedConnections, getGheCopilotHosts } from "./providers/migrations";
 
 // ──────────────── Re-exports from leaf modules ────────────────
 

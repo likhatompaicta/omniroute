@@ -138,6 +138,45 @@ test("oauth connections upsert by provider and email instead of duplicating rows
   assert.equal(rows[0].testStatus, "retrying");
 });
 
+// === CHANGE: verify Kiro append-only persistence bypasses global OAuth dedupe ===
+test("append-only OAuth creation keeps same-email Kiro credentials in separate encrypted rows", async () => {
+  const first = await providersDb.createProviderConnection({
+    provider: "kiro",
+    authType: "oauth",
+    email: "kiro@example.com",
+    accessToken: "kiro-access-a",
+    refreshToken: "kiro-refresh-a",
+    providerSpecificData: { clientId: "client-a" },
+  });
+  const second = await providersDb.createProviderConnection(
+    {
+      provider: "kiro",
+      authType: "oauth",
+      email: "kiro@example.com",
+      accessToken: "kiro-access-b",
+      refreshToken: "kiro-refresh-b",
+      providerSpecificData: { clientId: "client-b" },
+    },
+    { deduplicate: false }
+  );
+
+  const rows = await providersDb.getProviderConnections({ provider: "kiro" });
+  const firstReloaded = await providersDb.getProviderConnectionById(first.id as string);
+  const secondReloaded = await providersDb.getProviderConnectionById(second.id as string);
+
+  assert.notEqual(second.id, first.id);
+  assert.equal(rows.length, 2);
+  assert.equal(firstReloaded?.refreshToken, "kiro-refresh-a");
+  assert.equal(secondReloaded?.refreshToken, "kiro-refresh-b");
+  const secondProviderData =
+    secondReloaded?.providerSpecificData &&
+    typeof secondReloaded.providerSpecificData === "object" &&
+    !Array.isArray(secondReloaded.providerSpecificData)
+      ? (secondReloaded.providerSpecificData as Record<string, unknown>)
+      : {};
+  assert.equal(secondProviderData.clientId, "client-b");
+});
+
 test("codex workspace uniqueness uses workspaceId alongside email", async () => {
   const workspaceA = await providersDb.createProviderConnection({
     provider: "codex",
@@ -418,11 +457,12 @@ test("getProviderConnections supports authType filter and column projection", as
   assert.equal(activeOAuth.length, 1);
 
   // Column projection: only requested columns returned
-  const projected = await providersDb.getProviderConnections({ authType: "oauth" }, undefined, undefined, [
-    "id",
-    "provider",
-    "name",
-  ]);
+  const projected = await providersDb.getProviderConnections(
+    { authType: "oauth" },
+    undefined,
+    undefined,
+    ["id", "provider", "name"]
+  );
   assert.equal(projected.length, 1);
   const keys = Object.keys(projected[0]);
   // id, provider, name each appear in camelCase
@@ -456,7 +496,11 @@ test("getProviderConnections rejects column names outside the real provider_conn
   // A mix of valid + invalid columns must still reject (fail-closed, not a
   // silent partial projection).
   await assert.rejects(
-    () => providersDb.getProviderConnections({}, undefined, undefined, ["id", "provider; DROP TABLE provider_connections; --"]),
+    () =>
+      providersDb.getProviderConnections({}, undefined, undefined, [
+        "id",
+        "provider; DROP TABLE provider_connections; --",
+      ]),
     /invalid column/i
   );
 
@@ -472,10 +516,12 @@ test("getProviderConnections rejects column names outside the real provider_conn
     isActive: true,
     group: "team-a",
   });
-  const withGroup = await providersDb.getProviderConnections({ authType: "oauth" }, undefined, undefined, [
-    "id",
-    "group",
-  ]);
+  const withGroup = await providersDb.getProviderConnections(
+    { authType: "oauth" },
+    undefined,
+    undefined,
+    ["id", "group"]
+  );
   assert.equal(withGroup.length, 1);
   assert.equal(withGroup[0].group, "team-a");
 });

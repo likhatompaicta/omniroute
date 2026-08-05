@@ -21,7 +21,7 @@ test("classifyKiroSocialPoll keeps only documented pending states retryable", ()
   });
 });
 
-test("classifyKiroSocialPoll stops on denied, expired and malformed responses", () => {
+test("classifyKiroSocialPoll stops on denied and expired responses", () => {
   assert.deepEqual(classifyKiroSocialPoll(false, 403, { error: "access_denied" }), {
     kind: "error",
     error: "access_denied",
@@ -32,10 +32,16 @@ test("classifyKiroSocialPoll stops on denied, expired and malformed responses", 
     error: "expired_token",
     status: 400,
   });
+});
+
+test("classifyKiroSocialPoll retries empty successful responses while authorization is pending", () => {
   assert.deepEqual(classifyKiroSocialPoll(true, 200, {}), {
-    kind: "error",
-    error: "invalid_token_response",
-    status: 502,
+    kind: "pending",
+    error: "authorization_pending",
+  });
+  assert.deepEqual(classifyKiroSocialPoll(true, 200, { pending: true }), {
+    kind: "pending",
+    error: "authorization_pending",
   });
 });
 

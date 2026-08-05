@@ -48,6 +48,18 @@ async function upsertImportedKiroConnection(
   record: Record<string, unknown>,
   identity: { profileArn?: unknown; clientId?: unknown; email?: unknown; name?: unknown }
 ) {
+  // === CHANGE: Kiro token imports always create an isolated connection ===
+  if (targetProvider === "kiro") {
+    return createProviderConnection(
+      {
+        provider: targetProvider,
+        authType: "oauth",
+        ...record,
+      } as any,
+      { deduplicate: false }
+    );
+  }
+
   const existing = await getProviderConnections({ provider: targetProvider });
   const match = findKiroConnectionByIdentity(existing, { authType: "oauth", ...identity });
   if (typeof match?.id === "string") {
