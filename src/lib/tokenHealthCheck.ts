@@ -27,7 +27,11 @@ import {
 } from "@omniroute/open-sse/services/tokenRefresh.ts";
 import { pickMaskedDisplayValue } from "@/shared/utils/maskEmail";
 import { isAutomatedTestProcess } from "@/shared/utils/testProcess";
-import { refreshGithubCopilotSubTokenIfNeeded } from "@/lib/tokenHealthCheckCopilot";
+import {
+  refreshGithubCopilotSubTokenIfNeeded,
+  getCopilotTokenBaseUrl,
+  buildAccessTokenOnlySweepUpdate,
+} from "@/lib/tokenHealthCheckCopilot";
 
 const LOG_PREFIX = "[HealthCheck]";
 const TRUE_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -81,41 +85,11 @@ function getCopilotTokenExpiryMs(expiresAt: unknown): number {
   return 0;
 }
 
-// Providers whose OAuth flow yields only a GitHub-style access token (no
-// refresh_token) plus a short-lived Copilot sub-token: github.com Copilot and
-// GHE Copilot (device-code flow against the enterprise host) both fit this
-// shape. Keep both in sync — adding a github-token-only provider elsewhere
-// (e.g. new GHE-flavored Copilot variant) must also list it here.
-const GITHUB_ACCESS_TOKEN_ONLY_PROVIDERS = new Set(["github", "ghe-copilot"]);
-
 function isGitHubAccessTokenOnlyConnection(conn: any): boolean {
   return (
-    GITHUB_ACCESS_TOKEN_ONLY_PROVIDERS.has(String(conn?.provider || "").toLowerCase()) &&
+    ["github", "ghe-copilot"].includes(String(conn?.provider || "").toLowerCase()) &&
     typeof conn?.accessToken === "string" &&
     conn.accessToken.trim().length > 0
-  );
-}
-
-/**
- * Resolve the Copilot token endpoint base URL for a connection. github.com
- * Copilot always uses api.github.com; GHE Copilot uses its own per-enterprise
- * host stored in providerSpecificData.gheUrl at connect time.
- */
-function getCopilotTokenBaseUrl(conn: any): string {
-  if (String(conn?.provider || "").toLowerCase() === "ghe-copilot") {
-    const gheUrl = conn?.providerSpecificData?.gheUrl;
-    if (typeof gheUrl === "string" && gheUrl.trim().length > 0) {
-      return `${gheUrl.trim().replace(/\/+$/, "")}/api/v3`;
-    }
-  }
-  return "https://api.github.com";
-}
-
-function canClearGitHubNoRefreshTokenState(conn: any): boolean {
-  return (
-    !conn?.testStatus ||
-    conn.testStatus === "active" ||
-    (conn.testStatus === "expired" && conn.errorCode === "no_refresh_token")
   );
 }
 
@@ -598,46 +572,20 @@ export async function checkConnection(conn) {
         }
       }
 
-      if (canClearGitHubNoRefreshTokenState(conn)) {
-        await updateProviderConnection(conn.id, {
-          lastHealthCheckAt: now,
-          testStatus: "active",
-          lastError:
-            copilotAboutToExpire && !refreshedProviderSpecificData
-              ? "Health check: Copilot token refresh failed"
-              : null,
-          lastErrorAt: copilotAboutToExpire && !refreshedProviderSpecificData ? now : null,
-          lastErrorType:
-            copilotAboutToExpire && !refreshedProviderSpecificData ? "token_refresh_failed" : null,
-          lastErrorSource: copilotAboutToExpire && !refreshedProviderSpecificData ? "oauth" : null,
-          errorCode:
-            copilotAboutToExpire && !refreshedProviderSpecificData ? "refresh_failed" : null,
-          expiredRetryCount: null,
-          expiredRetryAt: null,
-          ...(refreshedProviderSpecificData
-            ? { providerSpecificData: refreshedProviderSpecificData }
-            : {}),
-        });
-      } else {
-        await updateProviderConnection(conn.id, {
-          lastHealthCheckAt: now,
-          ...(refreshedProviderSpecificData
-            ? { providerSpecificData: refreshedProviderSpecificData }
-            : {}),
-        });
-      }
+      await updateProviderConnection(
+        conn.id,
+        buildAccessTokenOnlySweepUpdate(
+          conn,
+          now,
+          copilotAboutToExpire,
+          refreshedProviderSpecificData
+        )
+      );
 
-      // Steady-state ticks stay silent: this path runs once per TICK_MS (60s) for
-      // EVERY github/ghe-copilot connection, so an unconditional line here emits
-      // ~1440 entries/day per connection all saying the same nothing-changed thing.
-      // Only report when the sweep actually did work — a Copilot sub-token refresh
-      // attempt — so a genuine refresh failure still surfaces in the log.
+      // Log only on an actual refresh attempt (avoids ~1440 no-op lines/day/connection).
       if (copilotAboutToExpire) {
-        log(
-          `${LOG_PREFIX} ${conn.provider}/${getConnectionLogLabel(conn)} Copilot token ${
-            refreshedProviderSpecificData ? "refreshed" : "refresh FAILED"
-          } (no refresh token; connection stays active)`
-        );
+        const status = refreshedProviderSpecificData ? "refreshed" : "refresh FAILED";
+        log(`${LOG_PREFIX} ${conn.provider}/${getConnectionLogLabel(conn)} Copilot ${status}`);
       }
       return;
     }
