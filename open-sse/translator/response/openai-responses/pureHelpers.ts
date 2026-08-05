@@ -183,15 +183,13 @@ export function extractResponsesReasoningSummaryText(item) {
 // the item AND the index advanced — never on the first segment.
 export function buildResponsesReasoningSummaryDelta(state, data, reasoningDelta) {
   const itemId = data.item_id != null ? String(data.item_id) : "";
-  const summaryIndex =
-    typeof data.summary_index === "number" ? data.summary_index : null;
+  const summaryIndex = typeof data.summary_index === "number" ? data.summary_index : null;
   if (!(state.reasoningSummaryIndex instanceof Map)) {
     state.reasoningSummaryIndex = new Map();
   }
   const lastIndex = itemId ? state.reasoningSummaryIndex.get(itemId) : undefined;
   const alreadyEmittedForItem = itemId
-    ? state.reasoningItemsWithDelta instanceof Set &&
-      state.reasoningItemsWithDelta.has(itemId)
+    ? state.reasoningItemsWithDelta instanceof Set && state.reasoningItemsWithDelta.has(itemId)
     : Boolean(state.reasoningDeltaEmitted);
   let deltaText = reasoningDelta;
   if (

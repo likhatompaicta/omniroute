@@ -87,7 +87,10 @@ function fakeCertFile(seed: string): string {
   const der = crypto.createHash("sha256").update(seed).digest();
   const pem =
     "-----BEGIN CERTIFICATE-----\n" +
-    der.toString("base64").match(/.{1,64}/g)!.join("\n") +
+    der
+      .toString("base64")
+      .match(/.{1,64}/g)!
+      .join("\n") +
     "\n-----END CERTIFICATE-----\n";
   const certPath = path.join(tmpRoot, `${seed}.crt`);
   fs.writeFileSync(certPath, pem);
@@ -156,11 +159,7 @@ test("filesystem proof: cp under umask 0077 creates mode 0600 (why the fix is ne
     // the bare `cp` on PATH below is a logging stub from the install tests.
     execFileSync("/usr/bin/cp", [src, dst]);
     const mode = fs.statSync(dst).mode & 0o777;
-    assert.equal(
-      mode,
-      0o600,
-      "cp under umask 0077 must produce 0600 — the bug this fix repairs"
-    );
+    assert.equal(mode, 0o600, "cp under umask 0077 must produce 0600 — the bug this fix repairs");
   } finally {
     process.umask(oldUmask);
   }
