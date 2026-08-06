@@ -1,4 +1,5 @@
 import type { RegistryEntry } from "./shared.ts";
+import { unorouterProvider } from "./registry/unorouter/index.ts";
 
 import { aimlapiProvider } from "./registry/aimlapi/index.ts";
 import { byteplusProvider } from "./registry/byteplus/index.ts";
@@ -117,6 +118,7 @@ import { uncloseaiProvider } from "./registry/uncloseai/index.ts";
 import { nscaleProvider } from "./registry/nscale/index.ts";
 import { chatgpt_webProvider } from "./registry/chatgpt-web/index.ts";
 import { openrouterProvider } from "./registry/openrouter/index.ts";
+import { cheaperinferenceProvider } from "./registry/cheaperinference/index.ts";
 import { openvectaProvider } from "./registry/openvecta/index.ts";
 import { orcarouterProvider } from "./registry/orcarouter/index.ts";
 import { copilot_webProvider } from "./registry/copilot-web/index.ts";
@@ -337,6 +339,7 @@ export const REGISTRY: Record<string, RegistryEntry> = {
   nscale: nscaleProvider,
   "chatgpt-web": chatgpt_webProvider,
   openrouter: openrouterProvider,
+  cheaperinference: cheaperinferenceProvider,
   openvecta: openvectaProvider,
   orcarouter: orcarouterProvider,
   "copilot-web": copilot_webProvider,
@@ -442,4 +445,5 @@ export const REGISTRY: Record<string, RegistryEntry> = {
   hcnsec: hcnsecProvider,
   promptql: promptqlProvider,
   hyperagent: hyperagentProvider,
+  unorouter: unorouterProvider,
 };

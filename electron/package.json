@@ -1,6 +1,6 @@
 {
   "name": "omniroute-desktop",
-  "version": "3.8.49",
+  "version": "3.8.50",
   "description": "OmniRoute Desktop Application",
   "main": "main.js",
   "author": {
@@ -43,7 +43,8 @@
     "appId": "online.omniroute.desktop",
     "productName": "OmniRoute",
     "copyright": "Copyright © 2025 OmniRoute",
-    "buildDependenciesFromSource": true,
+    "buildDependenciesFromSource": false,
+    "npmRebuild": false,
     "directories": {
       "output": "dist-electron",
       "buildResources": "assets"

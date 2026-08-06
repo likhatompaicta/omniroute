@@ -50,6 +50,7 @@ import { PoeWebExecutor } from "./poe-web.ts";
 import { VeniceWebExecutor } from "./venice-web.ts";
 import { NotionWebExecutor } from "./notion-web.ts";
 import { V0VercelWebExecutor } from "./v0-vercel-web.ts";
+import { CheaperInferenceExecutor } from "./cheaperinference.ts";
 import { KimiWebExecutor } from "./kimi-web.ts";
 import { DoubaoWebExecutor } from "./doubao-web.ts";
 import { QwenWebExecutor } from "./qwen-web.ts";
@@ -151,7 +152,9 @@ const executors = {
   "yuanbao-web": new YuanbaoWebExecutor(),
   ybw: new YuanbaoWebExecutor(), // Alias
   "poe-web": new PoeWebExecutor(),
-  poe: new PoeWebExecutor(), // Alias
+  // #8969: do NOT alias canonical `poe` (API-key / api.poe.com) to PoeWebExecutor.
+  // Registry declares executor:"default"; the hard-coded map previously won and
+  // routed API-key traffic to GraphQL /api/gql_POST → HTTP 405.
   "venice-web": new VeniceWebExecutor(),
   ven: new VeniceWebExecutor(), // Alias
   "notion-web": new NotionWebExecutor(),
@@ -165,6 +168,8 @@ const executors = {
   "kimi-coding": new KimiExecutor(), // Alias
   moonshot: new MoonshotExecutor(),
   kimi: new MoonshotExecutor("kimi"), // Hidden legacy Moonshot provider id
+  cheaperinference: new CheaperInferenceExecutor(),
+  cinf: new CheaperInferenceExecutor("cheaperinference"), // Alias
   "doubao-web": new DoubaoWebExecutor(),
   db: new DoubaoWebExecutor(), // Alias
   "qwen-web": new QwenWebExecutor(),
@@ -282,4 +287,5 @@ export { ZenmuxFreeExecutor } from "./zenmux-free.ts";
 export { HyperAgentExecutor } from "./hyperagent.ts";
 export { XaiExecutor } from "./xai.ts";
 export { MoonshotExecutor } from "./moonshot.ts";
+export { CheaperInferenceExecutor } from "./cheaperinference.ts";
 export { PromptQlExecutor } from "./promptql.ts";
