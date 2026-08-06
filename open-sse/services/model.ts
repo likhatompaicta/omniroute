@@ -585,6 +585,12 @@ async function resolveModelByProviderInference(modelId: string, extendedContext:
   // connection at all — there is no alternative to preempt, and "no codex credentials"
   // is the honest error. With codex active the preference still beats OpenAI, and an
   // explicit `openai/…` prefix remains the per-request override either way.
+  // #5887 × #9447 (owner decision 2026-08-05): for gpt-5.5(+effort variants) this
+  // active-connection bound IS the codex-vs-openai precedence rule — OpenAI serves it
+  // while codex is inactive, an ACTIVE codex connection preempts (the ChatGPT
+  // subscription is the quota source of truth), and an explicit `openai/…` prefix
+  // remains the per-request override. Do not carve gpt-5.5 out of the set: the
+  // contract lives in tests/unit/codex-gpt55-routing-5887.test.ts.
   if (CODEX_NATIVE_UNPREFIXED_MODELS.has(modelId)) {
     const codexNativeAlternatives = (MODEL_TO_PROVIDERS.get(modelId) || []).filter(
       (p) => p !== "codex"
