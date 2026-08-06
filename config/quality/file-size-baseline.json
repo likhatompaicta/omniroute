@@ -342,7 +342,7 @@
     "_rebaseline_2026_07_25_adobe_firefly_reference_images": "Follow-up to #8006: storage upload + referenceBlobs for image/video and /v1/images/edits dispatch. adobeFireflyClient.ts 1958->2317 (+upload helpers, extract sources, resolve blob ids). Note: 2317 not 2316 — check-file-size.mjs counts LOC via split(\"\\n\").length (counts the trailing-newline empty element), which is 1 higher than `wc -l` on a file ending in \\n; the PR's original entry (2316) was measured with wc -l and undercounted by 1 against the actual gate.",
     "_rebaseline_pr1043_minimax_tts": "Upstream port decolua/9router#1043 (toanalien) own growth: audioSpeech.ts 965->1061 (+96). Adds MiniMax T2A v2 TTS dispatch (handleMinimaxSpeech + hexToBytes helper) — provider entry was already in audioRegistry (format: minimax-tts) but no handler existed, falling through to the OpenAI-compatible default that fails (T2A has custom shape + hex-encoded audio + base_resp envelope). New branch sits next to the other inline provider branches (xiaomi-mimo, coqui, tortoise, aws-polly) — extracting would just create indirection. Covered by tests/unit/minimax-tts-1043.test.ts (3 tests, GREEN: success, base_resp error, invalid-hex).",
     "_rebaseline_pr4592_exclude_exhausted_auto": "Reconcile #4592 already-merged growth: combo.ts 2991->3036 (+45, terminal-status quota-cutoff exclusion in buildAutoCandidates + opt-in gate). Fast-gate PR->release does not run check:file-size.",
-    "open-sse/executors/antigravity.ts": 1528,
+    "open-sse/executors/antigravity.ts": 1536,
     "open-sse/executors/base.ts": 1578,
     "open-sse/executors/chatgpt-web.ts": 3241,
     "open-sse/executors/codex.ts": 1534,
