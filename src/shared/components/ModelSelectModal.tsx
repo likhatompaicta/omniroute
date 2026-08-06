@@ -192,8 +192,11 @@ export default function ModelSelectModal({
       if (!connection?.id) return null;
 
       // #9203: ask the live route to drop hidden models server-side too, so the
-      // operator's visibility settings apply before the rows reach the picker.
-      const res = await fetch(`/api/providers/${connection.id}/models?excludeHidden=true`);
+      // operator's visibility settings apply before the rows reach the picker,
+      // while chatOnly excludes media and retired models from this chat surface.
+      const res = await fetch(
+        `/api/providers/${connection.id}/models?excludeHidden=true&chatOnly=true`
+      );
       if (!res.ok) {
         console.warn(`Failed to fetch models for ${providerId}: ${res.status}`);
         return null;
@@ -555,11 +558,9 @@ export default function ModelSelectModal({
     if (
       shouldConfirmSelectAll(toAdd.length) &&
       !confirm(
-        labelOrFallback(
-          "selectAllConfirm",
-          `Add ${toAdd.length} models to this combo?`,
-          { count: toAdd.length }
-        )
+        labelOrFallback("selectAllConfirm", `Add ${toAdd.length} models to this combo?`, {
+          count: toAdd.length,
+        })
       )
     ) {
       return;
